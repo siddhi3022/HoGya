@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  order-service:
+    build: ./order-service
+    container_name: rs-order
+    ports:
+      - "8001:8001"
+    environment:
+      - INVENTORY_URL=http://inventory-service:8002
+    networks:
+      - rs-net
+    depends_on:
+      - inventory-service
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: rs-inventory
+    ports:
+      - "8002:8002"
+    networks:
+      - rs-net
+
+networks:
+  rs-net:
+    driver: bridge

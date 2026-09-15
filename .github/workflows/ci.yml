@@ -1,0 +1,17 @@
+name: CI/CD
+on: [push, pull_request]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: 'pip' }
+      - name: Install Order dependencies
+        run: pip install -r order-service/requirements.txt
+      - name: Install Inventory dependencies
+        run: pip install -r inventory-service/requirements.txt
+      - name: Build Docker images
+        run: |
+          docker build ./order-service -t rs-sbsm-order
+          docker build ./inventory-service -t rs-sbsm-inventory
