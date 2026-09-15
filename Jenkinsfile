@@ -2,12 +2,13 @@ pipeline {
     agent any
 
     tools {
-        jdk 'JDK17'
+        jdk 'JDK21'
     }
 
     environment {
         DOCKER_IMAGE_ORDER = 'rs-sbsm-order'
         DOCKER_IMAGE_INVENTORY = 'rs-sbsm-inventory'
+        DOCKER_PATH = 'C:\\Users\\rYuk\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin'
     }
 
     stages {
@@ -25,8 +26,8 @@ pipeline {
             steps {
                 bat 'java -version'
                 bat 'python --version'
-                bat 'docker --version'
-                bat 'docker compose version'
+                bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker --version'
+                bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose --version'
             }
         }
 
@@ -46,14 +47,14 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker compose build'
+                bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose build'
             }
         }
 
         stage('Docker Compose Deploy') {
             steps {
-                bat 'docker compose down'
-                bat 'docker compose up -d'
+                bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose down'
+                bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose up -d'
             }
         }
 
@@ -88,8 +89,8 @@ pipeline {
 
     post {
         always {
-            bat 'docker compose ps || exit /b 0'
-            bat 'docker compose logs --tail 20 || exit /b 0'
+            bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose ps || exit /b 0'
+            bat 'set "PATH=%DOCKER_PATH%;%PATH%" && docker-compose logs --tail 20 || exit /b 0'
         }
 
         success {
