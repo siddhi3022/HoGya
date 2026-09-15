@@ -78,7 +78,7 @@ pipeline {
 
         stage('Final Status') {
             steps {
-                echo 'CI/CD pipeline completed successfully.'
+                echo 'Pipeline complete. Services are running through Docker Compose.'
             }
         }
     }
@@ -86,7 +86,6 @@ pipeline {
     post {
         always {
             bat 'docker compose ps'
-            bat 'docker compose logs --tail 20'
         }
 
         success {
