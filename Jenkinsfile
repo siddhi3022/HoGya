@@ -11,72 +11,90 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                checkout scm
-                echo 'Checked out source from <GITHUB_REPOSITORY_URL> branch <GITHUB_BRANCH>'
+                git branch: 'main',
+                    url: 'https://github.com/siddhi3022/HoGya.git'
+
+                echo 'Checked out source from GitHub branch main'
+            }
+        }
+
+        stage('Verify Environment') {
+            steps {
+                bat 'java -version'
+                bat 'python --version'
+                bat 'docker --version'
+                bat 'docker compose version'
             }
         }
 
         stage('Setup / Dependencies') {
             steps {
-                sh 'python -m pip install --upgrade pip || true'
-                sh 'pip install -r order-service/requirements.txt || true'
-                sh 'pip install -r inventory-service/requirements.txt || true'
+                bat 'python -m pip install --upgrade pip'
+                bat 'python -m pip install -r requirements.txt'
             }
         }
 
         stage('Test / Validation') {
             steps {
-                sh 'echo "Running basic validation..."'
-                sh 'python -c "import fastapi, uvicorn, sqlalchemy, pydantic, pyjwt, bcrypt, httpx; print(\"All dependencies OK\")" || echo "Dependency check complete"'
+                bat 'python -m compileall order-service inventory-service'
+                bat 'python -m pytest -q tests'
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t ${DOCKER_IMAGE_ORDER} ./order-service'
-                sh 'docker build -t ${DOCKER_IMAGE_INVENTORY} ./inventory-service'
+                bat 'docker compose build'
             }
         }
 
         stage('Docker Compose Deploy') {
             steps {
-                sh 'docker-compose down || true'
-                sh 'docker-compose up --build -d'
-                sh 'sleep 3'
+                bat 'docker compose down'
+                bat 'docker compose up -d'
             }
         }
 
         stage('Service Verification') {
             steps {
-                sh 'echo "Checking Order Service (8001)..."'
-                sh 'curl -sf http://localhost:8001/ || echo "Order endpoint reached"'
-                sh 'echo "Checking Inventory Service (8002)..."'
-                sh 'curl -sf http://localhost:8002/ || echo "Inventory endpoint reached"'
-                sh 'echo "Checking Swagger docs..."'
-                sh 'curl -sf http://localhost:8001/docs > /dev/null && echo "Order docs OK" || echo "Order docs pending"'
-                sh 'curl -sf http://localhost:8002/docs > /dev/null && echo "Inventory docs OK" || echo "Inventory docs pending"'
+                powershell '''
+                    $order = Invoke-WebRequest -Uri "http://localhost:8001/" -UseBasicParsing
+                    $inventory = Invoke-WebRequest -Uri "http://localhost:8002/" -UseBasicParsing
+
+                    if ($order.StatusCode -ne 200) {
+                        throw "Order Service verification failed."
+                    }
+
+                    if ($inventory.StatusCode -ne 200) {
+                        throw "Inventory Service verification failed."
+                    }
+
+                    Write-Host "Order Service and Inventory Service are healthy."
+                '''
             }
         }
 
         stage('Final Status') {
             steps {
-                echo 'Pipeline complete. Services should be running via Docker Compose.'
+                echo 'CI/CD pipeline completed successfully.'
             }
         }
     }
 
     post {
+        always {
+            bat 'docker compose ps'
+            bat 'docker compose logs --tail 20'
+        }
+
         success {
             echo 'DevOps pipeline succeeded. Microservices deployed.'
         }
+
         failure {
-            echo 'Pipeline failed. Check Docker/Jenkins logs.'
-        }
-        always {
-            sh 'docker-compose logs --tail=20 || true'
-            sh 'docker ps || true'
+            echo 'Pipeline failed. Check Jenkins console output.'
         }
     }
 }
