@@ -60,7 +60,10 @@ pipeline {
         stage('Service Verification') {
             steps {
                 powershell '''
+                    Write-Host "Checking Order Service..."
                     $order = Invoke-WebRequest -Uri "http://localhost:8001/" -UseBasicParsing
+
+                    Write-Host "Checking Inventory Service..."
                     $inventory = Invoke-WebRequest -Uri "http://localhost:8002/" -UseBasicParsing
 
                     if ($order.StatusCode -ne 200) {
@@ -78,14 +81,15 @@ pipeline {
 
         stage('Final Status') {
             steps {
-                echo 'Pipeline complete. Services are running through Docker Compose.'
+                echo 'CI/CD pipeline completed successfully.'
             }
         }
     }
 
     post {
         always {
-            bat 'docker compose ps'
+            bat 'docker compose ps || exit /b 0'
+            bat 'docker compose logs --tail 20 || exit /b 0'
         }
 
         success {
